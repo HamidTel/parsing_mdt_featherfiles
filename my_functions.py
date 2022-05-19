@@ -1,18 +1,8 @@
-# Libraries"""
-
-from IPython.core.interactiveshell import InteractiveShell
-InteractiveShell.ast_node_interactivity = "all"
-
-#!pip install ipython-autotime;
-
-# Commented out IPython magic to ensure Python compatibility.
-# %load_ext autotime
 
 import pandas as pd
 import numpy as np
 import os
 from datetime import datetime, timedelta, timezone
-#from my_functions import mdtPrep
 
 
 import multiprocessing as mp
@@ -21,6 +11,8 @@ from functools import partial
 
 import pyarrow
 from pyarrow import feather
+
+
 
 def mdtPrep(mdtfile,dataDir,dataSource,timezone_offset,preenddate,poststartdate):
         
@@ -137,71 +129,3 @@ def mdtPrep(mdtfile,dataDir,dataSource,timezone_offset,preenddate,poststartdate)
 
         
         return [mdtRaw]
-
-if __name__ == '__main__':
-                #freeze_support()
-
-      """## Inputs"""
-
-      ###dataDir='/wsoc/ggcc/server/raw/compiled_logs/'
-      #dataDir='/content/drive/MyDrive/Analytics/GGCC-p1/Init/compiled_logs/'
-      dataDir='C:/1010/Projects/2022 - Analytics/Docker test/GGCC VM 3.3.0/server/datafiles/'
-
-      # output file dir
-      ###outputDir = '/data/docker_shared/ggcc/server/output/' #define output directory here
-      #outputDir = '/content/drive/MyDrive/Analytics/GGCC-p1/Init/ggccoutput/raw MDT data/' #define output directory here
-      outputDir ='C:/1010/Projects/temp-output/' #define output directory here
-
-      eNodeB_ID_List=[114279,136351,116196,116012]
-      timezone_offset=5
-      dataSource='MDT'
-
-      preenddate=datetime(2022, 2, 22, 0, 0, 0)
-      poststartdate=datetime(2022, 2, 23, 0, 0, 0)
-      preperiod=1
-      postperiod=1
-
-      export_filename='eNodeB('+str(eNodeB_ID_List)+").csv"
-
-       
-
-     # Preparation to read the data
-
-      date_1=preenddate - timedelta(days=preperiod-1)
-      date_2=poststartdate + timedelta(days=postperiod-1)
-
-      date_prefix = []
-      for dd in pd.date_range(date_1,date_2,freq='D'):
-              if ((dd <= preenddate) | (dd >= poststartdate)):
-                  prefix = 'mdt'.lower() + "_" + str(datetime.strftime(dd,"%Y%m%d")) + "_"
-                  date_prefix.append(prefix)
-      print(date_prefix)
-
-      dataFiles = []
-      for file in os.listdir(dataDir):
-          if int((file[13:][:2])) >= timezone_offset:
-              if file[:13] in date_prefix:
-                dataFiles.append(file)
-          else:
-              if dataSource.lower() + "_" +str(int(file[:12][4:])-1)+"_" in date_prefix:
-                dataFiles.append(file)
-      print(dataFiles)
-
-      # Reading the data using multiprocessing 
-
-      #Move all data into one dataframe
-      MDT_combined=pd.DataFrame()
-
-      cpus=mp.cpu_count()
-      print('number of cpus -->', cpus)
-      with Pool(cpus) as p:
-                      mdt_filtered=p.map(partial(mdtPrep,dataDir=dataDir,dataSource=dataSource,timezone_offset=timezone_offset,preenddate=preenddate,poststartdate=poststartdate),dataFiles)
-
-      MDT_combined=pd.concat(list(zip(*mdt_filtered))[0])
-
-      """## Exporting the processed data"""
-
-      #depending on the size of site list and number of days, the export can be too bulky!! try to breakdown the exports in those scenarios.
-
-      MDT_combined.to_csv(outputDir+export_filename)
-      print(MDT_combined.head())
